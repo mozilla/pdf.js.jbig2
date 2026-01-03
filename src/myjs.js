@@ -15,9 +15,21 @@
  */
 
 mergeInto(LibraryManager.library, {
-  setImageData: function (array_ptr, array_size) {
-    Module.imageData = new Uint8ClampedArray(
-      HEAPU8.subarray(array_ptr, array_ptr + array_size)
-    );
+  setImageData: function (array_ptr, pitch8, pitch32, height) {
+    if (pitch32 === pitch8) {
+      Module.imageData = new Uint8ClampedArray(
+        HEAPU8.subarray(array_ptr, array_ptr + pitch32 * height)
+      );
+      return;
+    }
+    const destSize = pitch8 * height;
+    const imageData = (Module.imageData = new Uint8ClampedArray(destSize));
+    for (
+      let srcStart = array_ptr, destStart = 0;
+      destStart < destSize;
+      srcStart += pitch32, destStart += pitch8
+    ) {
+      imageData.set(HEAPU8.subarray(srcStart, srcStart + pitch8), destStart);
+    }
   },
 });

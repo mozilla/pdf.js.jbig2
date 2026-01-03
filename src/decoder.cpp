@@ -19,7 +19,7 @@
 #include "emscripten.h"
 #include <cstdint>
 
-extern "C" void setImageData(const uint8_t *, size_t);
+extern "C" void setImageData(const uint8_t *, size_t, size_t, size_t);
 
 extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
                                                   size_t data_size,
@@ -29,11 +29,11 @@ extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
   const pdfium::span<const uint8_t> span =
       UNSAFE_BUFFERS(pdfium::span(data, data_size));
   const pdfium::span<const uint8_t> globals_span =
-      globals_size ? UNSAFE_BUFFERS(pdfium::span(globals_data, globals_size))
-                   : pdfium::span<const uint8_t>();
+      UNSAFE_BUFFERS(pdfium::span(globals_data, globals_size));
   const size_t pitch32 = ((width + 31) / 32) * 4;
+  const size_t pitch8 = ((width + 7) / 8);
   const size_t outputSize = pitch32 * height;
-  uint8_t *outBuffer = new uint8_t[outputSize];
+  uint8_t *const outBuffer = new uint8_t[outputSize];
   const auto outSpan = pdfium::span(outBuffer, outputSize);
   JBig2_DocumentContext document_context;
   Jbig2Context jbig2_context;
@@ -48,7 +48,7 @@ extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
   }
 
   if (status == FXCODEC_STATUS::kDecodeFinished) {
-    setImageData(outBuffer, outputSize);
+    setImageData(outBuffer, pitch8, pitch32, height);
   }
 
   delete[] outBuffer;
