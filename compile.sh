@@ -37,7 +37,7 @@ then
     WASM=0
 else
     OUTPUT_FILE="jbig2.js"
-    CXXFLAGS="-O3 -msimd128 -msse"
+    CXXFLAGS="-O3 -msimd128 -msse -fno-exceptions"
     WASM=1
 fi
 

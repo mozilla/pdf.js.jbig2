@@ -16,6 +16,8 @@
 
 #include "core/fxcodec/jbig2/JBig2_DocumentContext.h"
 #include "core/fxcodec/jbig2/jbig2_decoder.h"
+#include "core/fxcrt/fx_memory_wrappers.h"
+#include "core/fxcrt/maybe_owned.h"
 #include "emscripten.h"
 #include <cstdint>
 
@@ -33,8 +35,13 @@ extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
   const size_t pitch32 = ((width + 31) / 32) * 4;
   const size_t pitch8 = ((width + 7) / 8);
   const size_t outputSize = pitch32 * height;
-  uint8_t *const outBuffer = new uint8_t[outputSize];
-  const auto outSpan = pdfium::span(outBuffer, outputSize);
+  MaybeOwned<uint8_t, FxFreeDeleter> outBuffer;
+  outBuffer =
+      std::unique_ptr<uint8_t, FxFreeDeleter>(FX_TryAlloc(uint8_t, outputSize));
+  if (!outBuffer) {
+    return;
+  }
+  const auto outSpan = pdfium::span(outBuffer.Get(), outputSize);
   JBig2_DocumentContext document_context;
   Jbig2Context jbig2_context;
 
@@ -48,8 +55,6 @@ extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
   }
 
   if (status == FXCODEC_STATUS::kDecodeFinished) {
-    setImageData(outBuffer, pitch8, pitch32, height);
+    setImageData(outBuffer.Get(), pitch8, pitch32, height);
   }
-
-  delete[] outBuffer;
 }
