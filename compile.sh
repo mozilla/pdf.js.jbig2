@@ -84,7 +84,7 @@ em++ -o ${OUTPUT}/${OUTPUT_FILE} \
         -s NO_FILESYSTEM=1 \
         -s NO_EXIT_RUNTIME=1 \
         -s MALLOC=emmalloc \
-        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_malloc", "_free", "writeArrayToMemory"]' \
+        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_ccit_decode","_malloc", "_free", "writeArrayToMemory"]' \
         -s AGGRESSIVE_VARIABLE_ELIMINATION=1 \
         -s ASSERTIONS=0 \
         -DNDEBUG \
