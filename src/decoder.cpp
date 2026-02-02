@@ -21,10 +21,12 @@
 #include "core/fxcrt/fx_memory_wrappers.h"
 #include "core/fxcrt/maybe_owned.h"
 #include "emscripten.h"
+#include <cstddef>
 #include <cstdint>
 
 extern "C" void setImageData(const uint8_t *, size_t, size_t, size_t);
-extern "C" void setLine(const uint8_t *, size_t, size_t, size_t);
+extern "C" void createImageData(size_t);
+extern "C" void setLineData(const uint8_t *, size_t, size_t);
 
 extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
                                                   size_t data_size,
@@ -62,26 +64,26 @@ extern "C" void EMSCRIPTEN_KEEPALIVE jbig2_decode(const uint8_t *data,
   }
 }
 
-extern "C" void EMSCRIPTEN_KEEPALIVE ccit_decode(
+extern "C" void EMSCRIPTEN_KEEPALIVE ccitt_decode(
     const uint8_t *data, size_t data_size, size_t width, size_t height, int K,
-    bool EndOfLine, bool ByteAlign, bool BlackIs1, int Columns, int Rows) {
+    uint8_t EndOfLine, uint8_t ByteAlign, uint8_t BlackIs1, int Columns, int Rows) {
 
   const pdfium::span<const uint8_t> span =
       UNSAFE_BUFFERS(pdfium::span(data, data_size));
   std::unique_ptr<ScanlineDecoder> decoder = FaxModule::CreateDecoder(
-      span, width, height, K, EndOfLine, ByteAlign, BlackIs1, Columns, Rows);
+      span, width, height, K, !!EndOfLine, !!ByteAlign, !!BlackIs1, Columns, Rows);
   if (!decoder) {
     return;
   }
   const size_t pitch8 = ((width + 7) / 8);
-  const size_t outputSize = pitch8 * height;
+  createImageData(pitch8 * height);
 
   pdfium::span<const uint8_t> pOutLine;
-  for (size_t line = 0; line < height; line++) {
-    pOutLine = decoder->GetScanline(line);
+  for (size_t line = 0; line < height; ++line) {
+    pOutLine = decoder->GetScanline(static_cast<int>(line));
     if (pOutLine.empty()) {
       break;
     }
-    setLine(pOutLine.data(), pitch8, line * pitch8, outputSize);
+    setLineData(pOutLine.data(), pitch8, line * pitch8);
   }
 }

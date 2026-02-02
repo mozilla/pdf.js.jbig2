@@ -32,10 +32,10 @@ mergeInto(LibraryManager.library, {
       imageData.set(HEAPU8.subarray(srcStart, srcStart + pitch8), destStart);
     }
   },
-  setLine: function (line_ptr, pitch8, offset, size) {
-    if (!Module.imageData) {
-      Module.imageData = new Uint8ClampedArray(size);
-    }
+  createImageData: function (size) {
+    Module.imageData = new Uint8Array(size);
+  },
+  setLineData: function (line_ptr, pitch8, offset) {
     Module.imageData.set(HEAPU8.subarray(line_ptr, line_ptr + pitch8), offset);
   },
 });
