@@ -1,7 +1,7 @@
 FROM emscripten/emsdk:latest
 WORKDIR /tmp
 
-ENV PDFIUM_GIT_HASH=3c679253a9e17c10be696d345c63636b18b7f925
+ENV PDFIUM_GIT_HASH=0455e822ded1a5537d826703988e986a33d2d4a1
 
 RUN git config --global user.email "you@example.com" && \
     git config --global user.name "Your Name" && \
