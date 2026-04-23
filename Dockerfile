@@ -15,7 +15,6 @@ ENV PDFIUM=/tmp/pdfium
 ENV INPUT=/code/src
 
 ENV BUILD_TYPE=wasm
-ENV BUILD_DIR=build_${BUILD_TYPE}
 
 ADD compile.sh .
 ADD build build

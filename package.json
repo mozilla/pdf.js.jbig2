@@ -1,5 +1,5 @@
 {
-  "name": "pdf.js.openjpeg",
+  "name": "pdf.js.jbig2",
   "version": "0.0.1",
   "devDependencies": {
     "argparse": "^2.0.1",

@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Copyright 2026 Mozilla Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,23 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/sh
+set -e
 
-BUILD_TYPE=${BUILD_TYPE:=wasm}
-BUILD_DIR=${BUILD_DIR:=build_${BUILD_TYPE}}
 INPUT=${INPUT:=src}
 PDFIUM=${PDFIUM:=pdfium}
 OUTPUT=${OUTPUT:=.}
-JBIG2=${JBIG2:=${PDFIUM}/core/fxcodec/jbig2}
-JBIG2_BUILD=${JBIG2_BUILD:=${JBIG2}/${BUILD_DIR}}
+BUILD_TYPE=${BUILD_TYPE:=wasm}
 
-CODEC_DIR=${PDFIUM}/core/fxcodec/
-JBIG2_DIR=${CODEC_DIR}/jbig2
-FAX_DIR=${CODEC_DIR}/fax
-CRT_DIR=${PDFIUM}/core/fxcrt
-GE_DIR=${PDFIUM}/core/fxge
+CODEC_DIR="${PDFIUM}/core/fxcodec"
+JBIG2="${CODEC_DIR}/jbig2"
+FAX_DIR="${CODEC_DIR}/fax"
+CRT_DIR="${PDFIUM}/core/fxcrt"
+GE_DIR="${PDFIUM}/core/fxge"
 
-echo "Building ${BUILD_TYPE} from ${BUILD_DIR} to ${OUTPUT}..."
+echo "Building ${BUILD_TYPE} to ${OUTPUT}..."
 
 if [ "$BUILD_TYPE" = "js" ]
 then
@@ -41,35 +40,35 @@ else
     WASM=1
 fi
 
-em++ -o ${OUTPUT}/${OUTPUT_FILE} \
-        ${CODEC_DIR}/scanlinedecoder.cpp \
-        ${CRT_DIR}/debug/alias.cc \
-        ${CRT_DIR}/fx_memory.cpp \
-        ${CRT_DIR}/fx_memory_malloc.cpp \
-        ${FAX_DIR}/faxmodule.cpp \
-        ${GE_DIR}/calculate_pitch.cpp \
-        ${JBIG2}/jbig2_decoder.cpp \
-        ${JBIG2}/JBig2_ArithDecoder.cpp \
-        ${JBIG2}/JBig2_ArithIntDecoder.cpp \
-        ${JBIG2}/JBig2_BitStream.cpp \
-        ${JBIG2}/JBig2_Context.cpp \
-        ${JBIG2}/JBig2_DocumentContext.cpp \
-        ${JBIG2}/JBig2_GrdProc.cpp \
-        ${JBIG2}/JBig2_GrrdProc.cpp \
-        ${JBIG2}/JBig2_HtrdProc.cpp \
-        ${JBIG2}/JBig2_HuffmanDecoder.cpp \
-        ${JBIG2}/JBig2_HuffmanTable.cpp \
-        ${JBIG2}/JBig2_Image.cpp \
-        ${JBIG2}/JBig2_PddProc.cpp \
-        ${JBIG2}/JBig2_PatternDict.cpp \
-        ${JBIG2}/JBig2_SddProc.cpp \
-        ${JBIG2}/JBig2_Segment.cpp \
-        ${JBIG2}/JBig2_SymbolDict.cpp \
-        ${JBIG2}/JBig2_TrdProc.cpp \
-        ${INPUT}/decoder.cpp \
+em++ -o "${OUTPUT}/${OUTPUT_FILE}" \
+        "${CODEC_DIR}/scanlinedecoder.cpp" \
+        "${CRT_DIR}/debug/alias.cc" \
+        "${CRT_DIR}/fx_memory.cpp" \
+        "${CRT_DIR}/fx_memory_malloc.cpp" \
+        "${FAX_DIR}/faxmodule.cpp" \
+        "${GE_DIR}/calculate_pitch.cpp" \
+        "${JBIG2}/jbig2_decoder.cpp" \
+        "${JBIG2}/JBig2_ArithDecoder.cpp" \
+        "${JBIG2}/JBig2_ArithIntDecoder.cpp" \
+        "${JBIG2}/JBig2_BitStream.cpp" \
+        "${JBIG2}/JBig2_Context.cpp" \
+        "${JBIG2}/JBig2_DocumentContext.cpp" \
+        "${JBIG2}/JBig2_GrdProc.cpp" \
+        "${JBIG2}/JBig2_GrrdProc.cpp" \
+        "${JBIG2}/JBig2_HtrdProc.cpp" \
+        "${JBIG2}/JBig2_HuffmanDecoder.cpp" \
+        "${JBIG2}/JBig2_HuffmanTable.cpp" \
+        "${JBIG2}/JBig2_Image.cpp" \
+        "${JBIG2}/JBig2_PddProc.cpp" \
+        "${JBIG2}/JBig2_PatternDict.cpp" \
+        "${JBIG2}/JBig2_SddProc.cpp" \
+        "${JBIG2}/JBig2_Segment.cpp" \
+        "${JBIG2}/JBig2_SymbolDict.cpp" \
+        "${JBIG2}/JBig2_TrdProc.cpp" \
+        "${INPUT}/decoder.cpp" \
         --std=c++20 \
-        -I${PDFIUM} \
-        -I${INPUT} \
+        -I"${PDFIUM}" \
+        -I"${INPUT}" \
         -I. \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s MAXIMUM_MEMORY=2GB \
@@ -84,18 +83,18 @@ em++ -o ${OUTPUT}/${OUTPUT_FILE} \
         -s NO_FILESYSTEM=1 \
         -s NO_EXIT_RUNTIME=1 \
         -s MALLOC=emmalloc \
-        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_ccitt_decode","_malloc", "_free", "writeArrayToMemory"]' \
-        -s AGGRESSIVE_VARIABLE_ELIMINATION=1 \
+        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_ccitt_decode", "_malloc", "_free"]' \
+        -s EXPORTED_RUNTIME_METHODS='["writeArrayToMemory"]' \
         -s ASSERTIONS=0 \
         -DNDEBUG \
         -flto \
         ${CXXFLAGS} \
-        --js-library ${INPUT}/myjs.js
+        --js-library "${INPUT}/myjs.js"
 
 if [ "$BUILD_TYPE" = "wasm" ]
 then
-    chmod ugo-x ${OUTPUT}/jbig2.wasm
+    chmod ugo-x "${OUTPUT}/jbig2.wasm"
 fi
-sed -i '1 i\/* THIS FILE IS GENERATED - DO NOT EDIT */' ${OUTPUT}/${OUTPUT_FILE}
+sed -i '1 i\/* THIS FILE IS GENERATED - DO NOT EDIT */' "${OUTPUT}/${OUTPUT_FILE}"
 
 # -s ASSERTIONS=2 -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=2 -O0 -g4 \
