@@ -16,7 +16,7 @@
 
 #include "core/fxcodec/fax/faxmodule.h"
 #include "core/fxcodec/scanlinedecoder.h"
-#include "core/fxcodec/jbig2/JBig2_DocumentContext.h"
+#include "core/fxcodec/jbig2/jbig2_document_context.h"
 #include "core/fxcodec/jbig2/jbig2_decoder.h"
 #include "core/fxcrt/fx_memory_wrappers.h"
 #include "core/fxcrt/maybe_owned.h"

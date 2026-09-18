@@ -48,23 +48,23 @@ em++ -o "${OUTPUT}/${OUTPUT_FILE}" \
         "${FAX_DIR}/faxmodule.cpp" \
         "${GE_DIR}/calculate_pitch.cpp" \
         "${JBIG2}/jbig2_decoder.cpp" \
-        "${JBIG2}/JBig2_ArithDecoder.cpp" \
-        "${JBIG2}/JBig2_ArithIntDecoder.cpp" \
-        "${JBIG2}/JBig2_BitStream.cpp" \
-        "${JBIG2}/JBig2_Context.cpp" \
-        "${JBIG2}/JBig2_DocumentContext.cpp" \
-        "${JBIG2}/JBig2_GrdProc.cpp" \
-        "${JBIG2}/JBig2_GrrdProc.cpp" \
-        "${JBIG2}/JBig2_HtrdProc.cpp" \
-        "${JBIG2}/JBig2_HuffmanDecoder.cpp" \
-        "${JBIG2}/JBig2_HuffmanTable.cpp" \
-        "${JBIG2}/JBig2_Image.cpp" \
-        "${JBIG2}/JBig2_PddProc.cpp" \
-        "${JBIG2}/JBig2_PatternDict.cpp" \
-        "${JBIG2}/JBig2_SddProc.cpp" \
-        "${JBIG2}/JBig2_Segment.cpp" \
-        "${JBIG2}/JBig2_SymbolDict.cpp" \
-        "${JBIG2}/JBig2_TrdProc.cpp" \
+        "${JBIG2}/jbig2_arith_decoder.cpp" \
+        "${JBIG2}/jbig2_arith_int_decoder.cpp" \
+        "${JBIG2}/jbig2_bit_stream.cpp" \
+        "${JBIG2}/jbig2_context.cpp" \
+        "${JBIG2}/jbig2_document_context.cpp" \
+        "${JBIG2}/jbig2_grd_proc.cpp" \
+        "${JBIG2}/jbig2_grrd_proc.cpp" \
+        "${JBIG2}/jbig2_htrd_proc.cpp" \
+        "${JBIG2}/jbig2_huffman_decoder.cpp" \
+        "${JBIG2}/jbig2_huffman_table.cpp" \
+        "${JBIG2}/jbig2_image.cpp" \
+        "${JBIG2}/jbig2_pdd_proc.cpp" \
+        "${JBIG2}/jbig2_pattern_dict.cpp" \
+        "${JBIG2}/jbig2_sdd_proc.cpp" \
+        "${JBIG2}/jbig2_segment.cpp" \
+        "${JBIG2}/jbig2_symbol_dict.cpp" \
+        "${JBIG2}/jbig2_trd_proc.cpp" \
         "${INPUT}/decoder.cpp" \
         --std=c++20 \
         -I"${PDFIUM}" \
