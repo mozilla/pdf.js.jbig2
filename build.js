@@ -39,7 +39,7 @@ function create() {
   return execAndPrint("docker", ["build", "-t", "jbig2-decoder", "."]);
 }
 
-function build(type, path) {
+function build(path) {
   const workingDir = resolve(".");
   return execAndPrint("docker", [
     "run",
@@ -48,8 +48,6 @@ function build(type, path) {
     `${path}:/js`,
     "-v",
     `${workingDir}:/code`,
-    "--env",
-    `BUILD_TYPE=${type}`,
     "--rm",
     "jbig2-decoder",
   ]);
@@ -64,13 +62,13 @@ async function hasImage() {
   }
 }
 
-async function compile(type, path) {
+async function compile(path) {
   path = resolve(path);
   await fs.promises.access(path, fs.constants.F_OK);
   if (!(await hasImage())) {
     await create();
   }
-  await build(type, path);
+  await build(path);
 }
 
 const parser = new ArgumentParser({
@@ -82,16 +80,12 @@ parser.add_argument("-C", "--create", {
   action: "store_true",
 });
 parser.add_argument("-c", "--compile", {
-  help: "Compile the decoder and output a js file",
+  help: "Build the WASM decoder and JS fallback",
   action: "store_true",
 });
 parser.add_argument("-o", "--output", {
   help: "Output directory",
   default: ".",
-});
-parser.add_argument("-t", "--type", {
-  help: "Type (wasm or js)",
-  default: "wasm",
 });
 
 const args = parser.parse_args();
@@ -101,7 +95,7 @@ async function main() {
     await create();
   }
   if (args.compile) {
-    await compile(args.type, args.output);
+    await compile(args.output);
   }
 }
 

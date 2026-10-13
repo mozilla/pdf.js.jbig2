@@ -10,7 +10,7 @@ Run:
 node build.js --compile --output my_output_dir
 ```
 
-it will create a Docker image with emsdk and then run it. The generated `jbig2.js` will be in `my_output_dir`.
+This builds a Docker image if needed, then writes `jbig2.js`, `jbig2.wasm` and `jbig2_nowasm_fallback.js` to `my_output_dir`.
 
 ## Update
 

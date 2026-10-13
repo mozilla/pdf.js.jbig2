@@ -19,7 +19,10 @@ set -e
 INPUT=${INPUT:=src}
 PDFIUM=${PDFIUM:=pdfium}
 OUTPUT=${OUTPUT:=.}
-BUILD_TYPE=${BUILD_TYPE:=wasm}
+WASM2JS="${EMSDK}/upstream/bin/wasm2js"
+TERSER="${EMSDK}/upstream/emscripten/node_modules/.bin/terser"
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "${TMP_DIR}"' EXIT
 
 CODEC_DIR="${PDFIUM}/core/fxcodec"
 JBIG2="${CODEC_DIR}/jbig2"
@@ -27,20 +30,14 @@ FAX_DIR="${CODEC_DIR}/fax"
 CRT_DIR="${PDFIUM}/core/fxcrt"
 GE_DIR="${PDFIUM}/core/fxge"
 
-echo "Building ${BUILD_TYPE} to ${OUTPUT}..."
+build() {
+    BUILD_TYPE=$1
+    OUTPUT_FILE=$2
+    CXXFLAGS=$3
 
-if [ "$BUILD_TYPE" = "js" ]
-then
-    OUTPUT_FILE="jbig2_nowasm_fallback.js"
-    CXXFLAGS="-Oz"
-    WASM=0
-else
-    OUTPUT_FILE="jbig2.js"
-    CXXFLAGS="-O3 -msimd128 -msse -fno-exceptions"
-    WASM=1
-fi
+    echo "Building ${BUILD_TYPE} to ${OUTPUT_FILE}..."
 
-em++ -o "${OUTPUT}/${OUTPUT_FILE}" \
+    em++ -o "${OUTPUT_FILE}" \
         "${CODEC_DIR}/scanlinedecoder.cpp" \
         "${CRT_DIR}/debug/alias.cc" \
         "${CRT_DIR}/fx_memory.cpp" \
@@ -72,10 +69,8 @@ em++ -o "${OUTPUT}/${OUTPUT_FILE}" \
         -I. \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s MAXIMUM_MEMORY=2GB \
-        -s WASM=${WASM} \
         -s MODULARIZE=1 \
         -s EXPORT_NAME="'JBig2'" \
-        -s WASM_ASYNC_COMPILATION=${WASM} \
         -s EXPORT_ES6=1 \
         -s SINGLE_FILE=0 \
         -s ENVIRONMENT='web' \
@@ -90,11 +85,35 @@ em++ -o "${OUTPUT}/${OUTPUT_FILE}" \
         -flto \
         ${CXXFLAGS} \
         --js-library "${INPUT}/myjs.js"
+}
 
-if [ "$BUILD_TYPE" = "wasm" ]
-then
-    chmod ugo-x "${OUTPUT}/jbig2.wasm"
-fi
-sed -i '1 i\/* THIS FILE IS GENERATED - DO NOT EDIT */' "${OUTPUT}/${OUTPUT_FILE}"
+build wasm "${OUTPUT}/jbig2.js" "-O3 -msimd128 -msse -fno-exceptions"
+chmod ugo-x "${OUTPUT}/jbig2.wasm"
+
+build js "${TMP_DIR}/jbig2.js" "-Oz -fno-exceptions"
+
+for PATTERN in 'var wasmImports={[^}]*}' 'function assignWasmExports(wasmExports){[^}]*}'
+do
+    EXPECTED=$(grep -o "${PATTERN}" "${OUTPUT}/jbig2.js" || true)
+    ACTUAL=$(grep -o "${PATTERN}" "${TMP_DIR}/jbig2.js" || true)
+    if [ -z "${EXPECTED}" ] || [ "${EXPECTED}" != "${ACTUAL}" ]
+    then
+        echo "The wasm and js builds must have the same imports and exports." >&2
+        exit 1
+    fi
+done
+
+echo "Converting the js build to ${OUTPUT}/jbig2_nowasm_fallback.js..."
+
+"${WASM2JS}" --all-features --emscripten -O "${TMP_DIR}/jbig2.wasm" \
+    -o "${TMP_DIR}/wasm2js.js"
+{ printf "export default "; cat "${TMP_DIR}/wasm2js.js"; } > "${TMP_DIR}/module.js"
+"${TERSER}" "${TMP_DIR}/module.js" --module --compress --mangle \
+    -o "${OUTPUT}/jbig2_nowasm_fallback.js"
+
+for OUTPUT_FILE in jbig2.js jbig2_nowasm_fallback.js
+do
+    sed -i '1 i\/* THIS FILE IS GENERATED - DO NOT EDIT */' "${OUTPUT}/${OUTPUT_FILE}"
+done
 
 # -s ASSERTIONS=2 -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=2 -O0 -g4 \
