@@ -17,6 +17,7 @@
 "use strict";
 
 const { execFileSync } = require("child_process");
+const { readFileSync } = require("fs");
 
 function git(dir, args) {
   return execFileSync("git", args, {
@@ -49,6 +50,12 @@ function getPdfiumRevision(dir) {
   }
 }
 
+function readBuildMetadata(wasmFile) {
+  const module = new WebAssembly.Module(readFileSync(wasmFile));
+  const [section] = WebAssembly.Module.customSections(module, "build_info");
+  return section ? JSON.parse(new TextDecoder().decode(section)) : undefined;
+}
+
 if (require.main === module) {
   const [pdfiumDir, sourceDir, emscripten, flags] = process.argv.slice(2);
   const pdfium = getPdfiumRevision(pdfiumDir);
@@ -59,4 +66,4 @@ if (require.main === module) {
   process.stdout.write(JSON.stringify({ pdfium, repo, emscripten, flags }));
 }
 
-module.exports = { getRepoRevision };
+module.exports = { getRepoRevision, readBuildMetadata };
