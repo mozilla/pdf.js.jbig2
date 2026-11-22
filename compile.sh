@@ -20,6 +20,7 @@ INPUT=${INPUT:=src}
 PDFIUM=${PDFIUM:=pdfium}
 OUTPUT=${OUTPUT:=.}
 WASM2JS="${EMSDK}/upstream/bin/wasm2js"
+OBJCOPY="${EMSDK}/upstream/bin/llvm-objcopy"
 TERSER="${EMSDK}/upstream/emscripten/node_modules/.bin/terser"
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "${TMP_DIR}"' EXIT
@@ -33,7 +34,28 @@ GE_DIR="${PDFIUM}/core/fxge"
 build() {
     BUILD_TYPE=$1
     OUTPUT_FILE=$2
-    CXXFLAGS=$3
+    shift 2
+
+    set -- \
+        --std=c++20 \
+        -s ALLOW_MEMORY_GROWTH=1 \
+        -s MAXIMUM_MEMORY=2GB \
+        -s MODULARIZE=1 \
+        -s EXPORT_NAME="'JBig2'" \
+        -s EXPORT_ES6=1 \
+        -s SINGLE_FILE=0 \
+        -s ENVIRONMENT='web' \
+        -s ERROR_ON_UNDEFINED_SYMBOLS=1 \
+        -s NO_FILESYSTEM=1 \
+        -s NO_EXIT_RUNTIME=1 \
+        -s MALLOC=emmalloc \
+        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_ccitt_decode", "_malloc", "_free"]' \
+        -s EXPORTED_RUNTIME_METHODS='["writeArrayToMemory"]' \
+        -s ASSERTIONS=0 \
+        -DNDEBUG \
+        -flto \
+        "$@"
+    BUILD_FLAGS="$*"
 
     echo "Building ${BUILD_TYPE} to ${OUTPUT_FILE}..."
 
@@ -63,34 +85,26 @@ build() {
         "${JBIG2}/jbig2_symbol_dict.cpp" \
         "${JBIG2}/jbig2_trd_proc.cpp" \
         "${INPUT}/decoder.cpp" \
-        --std=c++20 \
         -I"${PDFIUM}" \
         -I"${INPUT}" \
         -I. \
-        -s ALLOW_MEMORY_GROWTH=1 \
-        -s MAXIMUM_MEMORY=2GB \
-        -s MODULARIZE=1 \
-        -s EXPORT_NAME="'JBig2'" \
-        -s EXPORT_ES6=1 \
-        -s SINGLE_FILE=0 \
-        -s ENVIRONMENT='web' \
-        -s ERROR_ON_UNDEFINED_SYMBOLS=1 \
-        -s NO_FILESYSTEM=1 \
-        -s NO_EXIT_RUNTIME=1 \
-        -s MALLOC=emmalloc \
-        -s EXPORTED_FUNCTIONS='["_jbig2_decode", "_ccitt_decode", "_malloc", "_free"]' \
-        -s EXPORTED_RUNTIME_METHODS='["writeArrayToMemory"]' \
-        -s ASSERTIONS=0 \
-        -DNDEBUG \
-        -flto \
-        ${CXXFLAGS} \
+        "$@" \
         --js-library "${INPUT}/myjs.js"
 }
 
-build wasm "${OUTPUT}/jbig2.js" "-O3 -msimd128 -msse -fno-exceptions"
+EMSCRIPTEN_VERSION=$(emcc -dumpversion)
+
+build wasm "${OUTPUT}/jbig2.js" -O3 -msimd128 -msse -fno-exceptions
 chmod ugo-x "${OUTPUT}/jbig2.wasm"
 
-build js "${TMP_DIR}/jbig2.js" "-Oz -fno-exceptions"
+echo "Adding build metadata to ${OUTPUT}/jbig2.wasm..."
+node "$(dirname "$0")/build_metadata.js" \
+    "${PDFIUM}" "${INPUT}" "${EMSCRIPTEN_VERSION}" "${BUILD_FLAGS}" \
+    > "${TMP_DIR}/build_info.json"
+"${OBJCOPY}" --add-section=build_info="${TMP_DIR}/build_info.json" \
+    "${OUTPUT}/jbig2.wasm"
+
+build js "${TMP_DIR}/jbig2.js" -Oz -fno-exceptions
 
 for PATTERN in 'var wasmImports={[^}]*}' 'function assignWasmExports(wasmExports){[^}]*}'
 do

@@ -16,7 +16,7 @@ ENV INPUT=/code/src
 
 ENV BUILD_TYPE=wasm
 
-ADD compile.sh .
+ADD compile.sh build_metadata.js ./
 ADD build build
 
 CMD ["/bin/sh", "-c", "/code/compile.sh"]
