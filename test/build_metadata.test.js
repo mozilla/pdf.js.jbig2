@@ -26,42 +26,46 @@ const { test } = require("node:test");
 test("build metadata records the revision and tracked changes", (t) => {
   const dir = mkdtempSync(join(tmpdir(), "jbig2-metadata-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+  const env = { ...process.env, REPO_REVISION: "" };
+  delete env.GIT_INDEX_FILE;
+  const options = { cwd: dir, encoding: "utf8", env };
   const git = (...args) =>
     execFileSync(
       "git",
       ["-c", "user.name=Test", "-c", "user.email=test@example.com", ...args],
-      { cwd: dir, encoding: "utf8" },
+      options,
     ).trim();
 
   const source = join(dir, "decoder.cpp");
   writeFileSync(source, "original\n");
   git("init", "--quiet");
-  git("add", "decoder.cpp");
+  git("add", ".");
   git("commit", "--quiet", "--no-gpg-sign", "-m", "Initial commit");
   git("tag", "--annotate", "--no-sign", "-m", "Build tag", "build-tag");
 
   const revision = git("rev-parse", "HEAD");
-  const version = "1.2.3";
+  const emscripten = "1.2.3";
   const flags = '-s EXPORTED_FUNCTIONS=["_malloc", "_free"]\t-O3';
-  const script = require.resolve("../build_metadata.js");
-  const metadata = (env = {}) =>
-    JSON.parse(
-      execFileSync(process.execPath, [script, dir, dir, version, flags], {
-        encoding: "utf8",
-        env: { ...process.env, REPO_REVISION: "", ...env },
-      }),
-    );
+  const args = [
+    require.resolve("../build_metadata.js"),
+    dir,
+    dir,
+    emscripten,
+    flags,
+  ];
+  const readMetadata = () =>
+    JSON.parse(execFileSync(process.execPath, args, options));
 
-  assert.deepEqual(metadata(), {
+  assert.deepEqual(readMetadata(), {
     pdfium: revision,
     repo: revision,
-    emscripten: version,
+    emscripten,
     flags,
   });
   writeFileSync(source, "modified\n");
-  assert.equal(metadata().repo, `${revision}-dirty`);
+  assert.equal(readMetadata().repo, `${revision}-dirty`);
 
-  const brokenIndex = join(dir, "broken-index");
-  writeFileSync(brokenIndex, "invalid index\n");
-  assert.equal(metadata({ GIT_INDEX_FILE: brokenIndex }).repo, "unknown");
+  writeFileSync(join(dir, ".git", "index"), "invalid index\n");
+  assert.equal(readMetadata().repo, "unknown");
 });
