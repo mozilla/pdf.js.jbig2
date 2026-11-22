@@ -33,7 +33,7 @@ function getRepoRevision(dir, gitOptions = []) {
       ...gitOptions,
       "status",
       "--porcelain",
-      "--untracked-files=no",
+      "--untracked-files=normal",
     ]);
     return status ? `${revision}-dirty` : revision;
   } catch {
