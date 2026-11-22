@@ -19,7 +19,8 @@
 const { ArgumentParser } = require("argparse");
 const fs = require("fs");
 const { spawn } = require("child_process");
-const { resolve } = require("path");
+const { tmpdir } = require("os");
+const { join, resolve } = require("path");
 const { getRepoRevision } = require("./build_metadata.js");
 
 function execAndPrint(fun, args) {
@@ -36,11 +37,15 @@ function execAndPrint(fun, args) {
   });
 }
 
-function create() {
-  return execAndPrint("docker", ["build", "-t", "jbig2-decoder", "."]);
+function create(imageIdFile) {
+  const args = ["build", "-t", "jbig2-decoder"];
+  if (imageIdFile) {
+    args.push("--iidfile", imageIdFile);
+  }
+  return execAndPrint("docker", [...args, "."]);
 }
 
-function build(path) {
+function build(path, imageId) {
   const workingDir = resolve(".");
   return execAndPrint("docker", [
     "run",
@@ -52,26 +57,23 @@ function build(path) {
     "-v",
     `${workingDir}:/code`,
     "--rm",
-    "jbig2-decoder",
+    imageId,
   ]);
-}
-
-async function hasImage() {
-  try {
-    await execAndPrint("docker", ["image", "inspect", "jbig2-decoder"]);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function compile(path) {
   path = resolve(path);
   await fs.promises.access(path, fs.constants.F_OK);
-  if (!(await hasImage())) {
-    await create();
+  const tempDir = await fs.promises.mkdtemp(join(tmpdir(), "jbig2-build-"));
+  try {
+    const imageIdFile = join(tempDir, "image-id");
+    await create(imageIdFile);
+    // Another checkout can retag the image before this container starts.
+    const imageId = (await fs.promises.readFile(imageIdFile, "utf8")).trim();
+    await build(path, imageId);
+  } finally {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
   }
-  await build(path);
 }
 
 const parser = new ArgumentParser({
@@ -94,11 +96,10 @@ parser.add_argument("-o", "--output", {
 const args = parser.parse_args();
 
 async function main() {
-  if (args.create) {
-    await create();
-  }
   if (args.compile) {
     await compile(args.output);
+  } else if (args.create) {
+    await create();
   }
 }
 
